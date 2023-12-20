@@ -16,12 +16,10 @@ public class CsrfTokenFilter extends OncePerRequestFilter{
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
-		
 			CsrfToken csrf = (CsrfToken) request.getAttribute("_csrf");
 			if( null != csrf) {
 				response.setHeader(csrf.getHeaderName(), csrf.getToken());
 			}
-			
 			filterChain.doFilter(request, response);
 	}
 

@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom';
 
 const DBRightSection = () => {
   return (
-    <div className='flex flex-col py-12 flex-1 h-full '>
+    <div className='flex flex-col w-full py-12 flex-1 h-full '>
       <DBHeader />
       <Outlet />
     </div>

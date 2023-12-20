@@ -8,5 +8,5 @@ import com.main.entity.Authority;
 @Repository
 public interface AuthorityRepository extends JpaRepository<Authority, Integer>{
 
-	public Authority findByName(String name);
+	 Authority findByName(String name);
 }

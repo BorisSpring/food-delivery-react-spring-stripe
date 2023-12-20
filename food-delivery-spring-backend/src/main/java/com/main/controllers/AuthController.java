@@ -1,43 +1,35 @@
 package com.main.controllers;
 
-import org.springframework.http.HttpStatus;
+import com.main.requests.UserRegistrationRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.main.dto.UserDTO;
-import com.main.requests.CreateAccountRequest;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import com.main.dto.UserDto;
 import com.main.requests.LoginRequest;
 import com.main.responses.AuthResponse;
 import com.main.service.UserService;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
+@Validated
 public class AuthController {
 
-	
-	private UserService userService;
-	
-	public AuthController(UserService userService) {
-		this.userService = userService;
-	}
+	private final UserService userService;
 
 	@PostMapping("/signin")
-	public ResponseEntity<AuthResponse> loginHandler(@RequestBody LoginRequest req){
-		return ResponseEntity.status(HttpStatus.OK).body(userService.loginUser(req));
+	public ResponseEntity<AuthResponse> loginHandler(@Valid @RequestBody LoginRequest req){
+		return ResponseEntity.ok(userService.loginUser(req));
 	}
-	
 	@PostMapping("/signup")
-	public ResponseEntity<AuthResponse> registerHandler(@RequestBody CreateAccountRequest req){
-		return ResponseEntity.status(HttpStatus.OK).body(userService.registerUser(req));
+	public ResponseEntity<AuthResponse> registerHandler(@Valid @RequestBody UserRegistrationRequest createAccountRequest){
+		return ResponseEntity.ok(userService.registerUser(createAccountRequest));
 	}
 	
-	@PostMapping
-	public ResponseEntity<UserDTO> findUserHandler(@RequestHeader("Authorization") String jwt){
-		
-		return ResponseEntity.status(HttpStatus.OK).body(userService.getUserFromToken(jwt));
+	@GetMapping
+	public ResponseEntity<UserDto> findUserHandler(@RequestHeader("Authorization") String jwt){
+		return ResponseEntity.ok(userService.getUserFromToken(jwt));
 	}
 }

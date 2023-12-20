@@ -1,30 +1,27 @@
 package com.main.requests;
 
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import lombok.*;
+
+@Setter
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class OrderItemRequest {
 
-	private int productId;
-	private int totalQuantity;
-	private int totalPrice;
-	
-	public int getProductId() {
-		return productId;
-	}
-	public void setProductId(int productId) {
-		this.productId = productId;
-	}
-	public int getTotalQuantity() {
-		return totalQuantity;
-	}
-	public void setTotalQuantity(int totalQuantity) {
-		this.totalQuantity = totalQuantity;
-	}
-	public int getTotalPrice() {
-		return totalPrice;
-	}
-	public void setTotalPrice(int totalPrice) {
-		this.totalPrice = totalPrice;
-	}
-	
-	
+	@NotBlank(message = "Product id required!")
+	@Positive(message = "product id must be positive number!")
+	private Integer productId;
+
+	@NotBlank(message = "Total quantity required! id required!")
+	@Positive(message = "Total quantity must be positive number!")
+	private Integer totalQuantity;
+
+	@NotBlank(message = "total price required!")
+	@Positive(message = "Price must be positive number!")
+	private double totalPrice;
+
 }

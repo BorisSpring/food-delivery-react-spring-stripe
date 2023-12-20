@@ -1,0 +1,37 @@
+server:
+  port: 8080
+upload:
+  dir: food-delivery-spring-backend/src/main/resources/static
+stripe:
+  apiKey: sk_test_51Nqs5LHeveq0G9DVZIdJACluk0wDlhZsP9dZfB4JwE4CneoSPACzQnFkLIb2GXIhkE9zFiAs1Co6PfhK3SFyZS8v00Vic2XNKT
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/fooddelivery
+    username: root
+    password: loreana12345
+  jpa:
+    defer-datasource-initialization: true
+    show-sql: false
+    generate-ddl: true
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+  application:
+    name: "foodDeliveryApp"
+  security:
+    oauth2:
+      client:
+        registration:
+          facebook:
+            client-id: 314239344909786
+            client-secret: 065cb5cc4182d091f74293d17c607a47
+
+
+webSocket:
+  secret: "12312312312312"

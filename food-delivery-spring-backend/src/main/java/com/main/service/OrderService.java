@@ -1,24 +1,28 @@
 package com.main.service;
 
-import java.util.List;
 
+import com.main.dto.OrderDto;
 import com.main.entity.Order;
 import com.main.exceptions.OrderException;
 import com.main.exceptions.ProductException;
-import com.main.requests.OrderItemRequest;
+import com.main.requests.CreateOrderRequest;
+import com.main.requests.UpdateOrderRequest;
+import org.springframework.data.domain.Page;
 
 public interface OrderService {
 
 	
-	 List<Order> findAllOrders();
+	 Page<OrderDto> findAllOrders(Integer pageNumber, Integer pageSize);
+
+	 void setOrderStatus(String status, int orderId) throws OrderException;
 	
-	 boolean setOrderStatus(String status, int orderId) throws OrderException;
-	
-	 boolean deleteOrder(int orderId) throws OrderException;
+	 void deleteOrder(int orderId) throws OrderException;
 	
 	 Order findById(int orderId) throws OrderException;
 
-	Order createOrder(List<OrderItemRequest> orderItems, int userId, String jwt , String adress) throws ProductException, OrderException;
+	 Order createOrder(String jwt , CreateOrderRequest createOrderRequest) throws ProductException, OrderException;
 
-	boolean cancelOrder(String jwt, int orderId) throws OrderException;
+	 void cancelOrder(String jwt, int orderId) throws OrderException;
+
+     OrderDto updateOrder(UpdateOrderRequest updateOrderRequest) throws OrderException;
 }

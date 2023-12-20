@@ -3,6 +3,7 @@ import userReducer from './userReducer';
 import authReducer from './authReducer';
 import alertReducer from './alertReducer';
 import dashboardReducer from './dashboardReducer';
+import productReducer from './productReducer';
 
 const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ const store = configureStore({
     auth: authReducer,
     alert: alertReducer,
     dashboard: dashboardReducer,
+    products: productReducer,
   },
 });
 

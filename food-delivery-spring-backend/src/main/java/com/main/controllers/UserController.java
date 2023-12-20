@@ -1,47 +1,39 @@
 package com.main.controllers;
 
-import java.util.List;
 
+import com.main.dto.UserDto;
+import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.main.entity.User;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import com.main.service.UserService;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping(path = "/api/users", produces = "application/json")
+@RequiredArgsConstructor
+@Validated
 public class UserController {
 
-	private UserService userService;
-	
-	
-	
-	public UserController(UserService userService) {
-		this.userService = userService;
-	}
-
-
+	private final UserService userService;
 
 	@GetMapping
-	public ResponseEntity<List<User>> findAllUsershandler(){
-		return ResponseEntity.status(HttpStatus.OK).body(userService.findAllUsers());
+	public ResponseEntity<Page<UserDto>> findAllUsershandler(@Positive(message = "Page number must be positive") @RequestParam(name ="pageNumber", required = false, defaultValue = "1") Integer pageNumber,
+															 @Positive(message = "Page size must be positive") @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer pageSize){
+		return ResponseEntity.ok(userService.findAllUsers(pageNumber, pageSize));
 	}
 	
-	@PostMapping("/{userId}")
-	public ResponseEntity<Boolean> enableDisableUserHandler(@PathVariable int userId){
-		
-		return ResponseEntity.status(HttpStatus.OK).body(userService.enableDisableUser(userId));
+	@PutMapping
+	@ResponseStatus(HttpStatus.OK)
+	public void enableDisableUserHandler(@Positive(message = "User id must be positive number!") @RequestParam int userId){
+		userService.enableDisableUser(userId);
 	}
 	
-	@DeleteMapping("/{userId}")
-	public ResponseEntity<Boolean> deleteUserHadnler(@PathVariable int userId){
-		
-		return ResponseEntity.status(HttpStatus.OK).body(userService.deleteUser(userId));
+	@DeleteMapping
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteUserHadnler(@Positive(message = "User id must be positive number!") @RequestParam int userId){
+    	 userService.deleteUser(userId);
 	}
 }

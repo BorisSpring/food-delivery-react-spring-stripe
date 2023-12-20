@@ -1,24 +1,46 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Logo } from '../assets';
 import { isActiveStyles, isNotActiveStyles } from '../utils/styles';
 import { motion } from 'framer-motion';
 import { buttonClick, slideTop } from '../animations/variants';
-import { MdShoppingCart } from '../assets/icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdLogout } from 'react-icons/md';
+import { MdLogout, MdShoppingCart } from 'react-icons/md';
 import { logout } from '../redux/userReducer';
+import { useCartContext } from '../context/userCartContext';
 
 const Header = () => {
   const user = useSelector((store) => store.user.user);
   const [isMenu, setIsMenu] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { setIsCartOpen } = useCartContext();
+  const { setIsCartOpen, isCartOpen } = useCartContext();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const { items } = useSelector((store) => store.user);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   return (
-    <header className='fixed backdrop-blur-md inset-x-0  top-0 flex items-center justify-between px-12 md:px-20 py-2 md:py-3 '>
+    <header
+      className={`fixed  inset-x-0  transition-all duration-300 top-0 flex items-center justify-between px-12 md:px-20 py-2 md:py-3 z-50  ${
+        isScrolled ? 'bg-white' : 'bg-primary'
+      }`}
+    >
       <NavLink to='/' className='flex items-center justify-center gap-4'>
-        <img src={Logo} alt='Company Logo' className='w-10' />
+        <img
+          src='public\assets\img\logo.png'
+          alt='Company Logo'
+          className='w-10'
+        />
         <p className='text-2xl font-semibold text-headingColor'>City</p>
       </NavLink>
       <nav className='flex items-center justify-between gap-7'>
@@ -60,11 +82,13 @@ const Header = () => {
         <motion.div {...buttonClick} className='relative cursor-pointer'>
           <MdShoppingCart
             className='text-3xl text-textcolor'
-            onClick={() => setIsCartOpen((prev) => !prev)}
+            onClick={() => setIsCartOpen((prev) => !isCartOpen)}
           />
-          <div className='absolute w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center -top-2 text-base -right-1'>
-            2
-          </div>
+          {items?.length > 0 && (
+            <div className='absolute w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center -top-2 text-base -right-1'>
+              {items?.length}
+            </div>
+          )}
         </motion.div>
         {user ? (
           <>
@@ -76,9 +100,7 @@ const Header = () => {
                 <motion.img
                   whileHover={{ scale: 1.15 }}
                   className='w-full h-full object-cover'
-                  src={
-                    !user?.image ? 'src/assets/img/avatar.png' : ' /avatar.png'
-                  }
+                  src={`http://localhost:8080/api/products/image/${user.imageName}`}
                   referrerPolicy='no-referrer'
                 />
               </div>

@@ -4,7 +4,6 @@ import { Routes, Route } from 'react-router-dom';
 
 import {
   Alert,
-  DBHome,
   DBItems,
   DBNewItem,
   DBOrders,
@@ -13,21 +12,22 @@ import {
 } from './components';
 import HomePage from './pages/HomePage';
 import Login from './pages/Login';
-
+import CartContainer from './components/CartContainer';
+import { useCartContext } from './context/userCartContext';
 const App = () => {
   const alert = useSelector((store) => store.alert);
-
+  const { isCartOpen } = useCartContext();
   return (
-    <div className='w-screen min-h-screen h-auto flex flex-col items-center justify-center'>
+    <div>
+      {isCartOpen && <CartContainer />}
       <Routes>
-        <Route path='/*' element={<HomePage />} />
+        <Route path='/' element={<HomePage />} />
         <Route path='/login' element={<Login />} />
         <Route path='/dashboard' element={<Dashboard />}>
           <Route path='items' element={<DBItems />} />
           <Route path='users' element={<DBUsers />} />
           <Route path='addItem' element={<DBNewItem />} />
           <Route path='orders' element={<DBOrders />} />
-          <Route path='home' element={<DBHome />} />
         </Route>
       </Routes>
       {alert.type && <Alert type={alert.type} message={alert.message} />}

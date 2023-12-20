@@ -1,25 +1,27 @@
 package com.main.service;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 import javax.crypto.SecretKey;
 
+import com.main.exceptions.ResourceNotFoundException;
+import com.main.mappers.UserMapper;
+import com.main.requests.UserRegistrationRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.main.config.JwtConst;
-import com.main.dto.UserDTO;
+import com.main.dto.UserDto;
 import com.main.entity.User;
 import com.main.exceptions.UserException;
 import com.main.repository.AuthorityRepository;
 import com.main.repository.UserRepository;
-import com.main.requests.CreateAccountRequest;
 import com.main.requests.LoginRequest;
 import com.main.responses.AuthResponse;
 
@@ -29,196 +31,152 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.transaction.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-	private UserRepository userRepo;
-	private AuthorityRepository authorityRepo;
-	private PasswordEncoder passwordEncoder;
-
-	
-	
-	public UserServiceImpl(UserRepository userRepo, AuthorityRepository authorityRepo,
-			PasswordEncoder passwordEncoder) {
-		this.userRepo = userRepo;
-		this.authorityRepo = authorityRepo;
-		this.passwordEncoder = passwordEncoder;
-	}
+	private final UserRepository userRepository;
+	private final AuthorityRepository authorityRepo;
+	private final PasswordEncoder passwordEncoder;
+	private final UserMapper userMapper;
 
 	@Override
-	public List<User> findAllUsers() {
-		 return userRepo.findAll();
+	public Page<UserDto> findAllUsers(Integer pageNumber, Integer pageSize) {
+		return userRepository.findAll(PageRequest.of((pageNumber - 1), pageSize)).map(userMapper::userToUserDto);
 	}
 
-	
-	
 	@Override
 	public String getEmailFromToken(String jwt) {
-		try {
-			jwt = jwt.substring(7);
-			SecretKey key = Keys.hmacShaKeyFor(JwtConst.KEY.getBytes(StandardCharsets.UTF_8));
-			
-			Claims claim = Jwts.parserBuilder()
-					.setSigningKey(key)
-					.build()
-					.parseClaimsJws(jwt)
-					.getBody();
-			
-			return (String) claim.get("email");
-			
-		} catch (Exception e) {
-			throw new BadCredentialsException("Invalid token received1");
-		}
+		return getClaimsFromToken(jwt).get("email").toString();
 	}
-	
-	
-	
-	
+
+	@Override
+	public Integer getUserIdFromToken(String jwt) {
+		return (Integer) getClaimsFromToken(jwt).get("userId");
+	}
+
+
 	@Override
 	public AuthResponse loginUser(LoginRequest req) {
-		
-		User user = userRepo.findByEmail(req.getEmail());
-		
-		if(user == null || !passwordEncoder.matches(req.getPassword(), user.getPassword())) 
+
+		User user =  userRepository.findByEmail(req.getEmail())
+							.orElseThrow(() -> new BadCredentialsException("Invalid credentials!"));
+
+		if(!passwordEncoder.matches(req.getPassword(), user.getPassword()))
 			throw new BadCredentialsException("Invalid Provided Credentials");
 		
-		return new AuthResponse(true, generateToken(user.getEmail(), Collections.singletonList(user.getAuthority().getName())));
+		return AuthResponse.builder()
+						.isAuth(true)
+						.jwt(generateToken(user))
+						.build();
 	}
 
 	
 	
 	@Transactional
 	@Override
-	public AuthResponse registerUser(CreateAccountRequest req) {
+	public AuthResponse registerUser(UserRegistrationRequest req) {
 			
 		if(!req.getPassword().equals(req.getRepeatedPassword()))
 			throw new UserException("Passwords Must match");
 
-		User user = userRepo.findByEmail(req.getEmail());
-		
-		if(user != null)
-			throw new UserException("Email alerdy in use");
-		
-		user = new User();
-		user.setEmail(req.getEmail());
-		user.setEnabled(true);
-		user.setCreated(LocalDateTime.now());
-		user.setPassword(passwordEncoder.encode(req.getPassword()));
-		user.setAuthority(authorityRepo.findByName(req.getAuthority()));
-		user.setFirstName(req.getFirstName());
-		user.setLastName(req.getLastName());
-		user = userRepo.save(user);
-		
-		if(user == null)
-			throw new UserException("Fail to register account!");
-		
-		return new AuthResponse(true,generateToken(req.getEmail(), Collections.singletonList(user.getAuthority().getName())));
+		userRepository.findByEmail(req.getEmail()).ifPresent(user -> {
+			throw new UserException("There is already a user with the same email address!");
+		});
+
+		User user = userRepository.save(User.builder()
+				.email(req.getEmail())
+				.enabled(true)
+				.password(req.getPassword())
+				.authority(authorityRepo.findByName("user"))
+				.firstName(req.getFirstName())
+				.lastName(req.getLastName())
+				.build());
+
+		return AuthResponse.builder()
+				.isAuth(true)
+				.jwt(generateToken(user))
+				.build();
 	}
 
-	private String generateToken(String email, List<String> authorities) {
+	private String generateToken(User user) {
 		
 		try {
-			
 			SecretKey key = Keys.hmacShaKeyFor(JwtConst.KEY.getBytes(StandardCharsets.UTF_8));
-			
-			String jwt = Jwts.builder()
-					.setIssuer("Boris Dimitrijevic")
-					.setIssuedAt(new Date())
-					.setExpiration(new Date(new Date().getTime() + 86400000))
-					.claim("email" , email)
-					.claim("authorities", String.join(",", authorities))
-					.signWith(key)
-					.compact();
-				return jwt;	
-			
+			 return Jwts.builder()
+						.setIssuer("Boris Dimitrijevic")
+						.setIssuedAt(new Date())
+						.setExpiration(new Date(new Date().getTime() + 86400000))
+						.claim("email" , user.getEmail())
+						.claim("authorities", user.getAuthority().getName())
+					 	.claim("userId", user.getId())
+						.signWith(key)
+						.compact();
 		} catch (Exception e) {
 			throw new BadCredentialsException("Fail to generate token");
 		}
 	}
-	
-	@Override
-	public UserDTO getUserFromToken(String jwt) {
-			
-		try {
+	public Claims getClaimsFromToken(String jwt){
+		try{
 			jwt = jwt.substring(7);
 			SecretKey key = Keys.hmacShaKeyFor(JwtConst.KEY.getBytes(StandardCharsets.UTF_8));
-			
-			Claims claim = Jwts.parserBuilder()
+
+			return Jwts.parserBuilder()
 					.setSigningKey(key)
 					.build()
 					.parseClaimsJws(jwt)
 					.getBody();
-		
-			User user = userRepo.findByEmail((String)claim.get("email"));
+		}catch (Exception e){
+			throw new BadCredentialsException("Invalid token recived!");
+		}
+	}
+	@Override
+	public UserDto getUserFromToken(String jwt) {
 			
-			if(user == null)
-				throw new BadCredentialsException("User not found");
+		try {
+			User user = userRepository.findByEmail((String) getClaimsFromToken(jwt).get("email"))
+							.orElseThrow(() -> new ResourceNotFoundException("Invalid token received!"));
 			
-			UserDTO dto = new UserDTO();
-			
-			dto.setAuthority(user.getAuthority().getName());
-			dto.setId(user.getId());
-			dto.setEmail(user.getEmail());
-			dto.setOrders(user.getOrders());
-			dto.setFirstName(user.getFirstName());
-			dto.setLastName(user.getLastName());
-			
-			return dto;
-			
+			return   UserDto.builder()
+							.authority(user.getAuthority().getName())
+							.id(user.getId())
+							.imageName(user.getImageName())
+							.email(user.getEmail())
+							.orders(user.getOrders())
+							.firstName(user.getFirstName())
+							.lastName(user.getLastName())
+							.build();
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
 			throw new BadCredentialsException("Invalid token received");
 		}
 	}
 
 	@Transactional
 	@Override
-	public boolean enableDisableUser(int userId) throws UserException {
-			
-		if(!userRepo.existsById(userId))
-			throw new UserException("user with id " + userId + " doesnt exists");
-		
-		User user = userRepo.findById(userId).get();
-		
-		user.setEnabled(user.isEnabled() ? false : true);
-		user = userRepo.save(user);
-		
-		if(user == null)
-			throw new UserException("Fail to update user statsu");
-		
-		return true;
+	public void enableDisableUser(int userId) throws UserException {
+		User user = findById(userId);
+
+		user.setEnabled(!user.isEnabled());
+		userRepository.save(user);
 	}
 
 	@Transactional
 	@Override
-	public boolean deleteUser(int userId) throws UserException {
-		
-		if(!userRepo.existsById(userId))
+	public void deleteUser(int userId) throws UserException {
+		if(!userRepository.existsById(userId))
 			throw new UserException("user with id " + userId + " doesnt exists");
 		
-		userRepo.deleteById(userId);
-		
-		return true;
-		
+		userRepository.deleteById(userId);
 	}
 
 	@Override
 	public User findById(int userId) throws UserException {
-		Optional<User> opt = userRepo.findById(userId);
-		
-		if(!opt.isPresent())
-			throw new UserException("User not found");
-		
-		return opt.get();
+		return  userRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found!"));
 	}
 
 	@Override
 	public User findByEmail(String email) throws UserException {
-		
-		User user = userRepo.findByEmail(email);
-		
-		if(user == null)
-			throw new UserException("User not found!");
-		
-		return user;
+		return  userRepository.findByEmail(email)
+				.orElseThrow(() -> new ResourceNotFoundException("User with email " + email + " not found!"));
 	}
 }

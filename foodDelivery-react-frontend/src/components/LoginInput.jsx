@@ -8,14 +8,13 @@ const LoginInput = ({
   inputState,
   inputStatefunc,
   type,
-  isSignUp,
 }) => {
   const [isFocus, setIsFocus] = useState(false);
 
   return (
     <motion.div
       {...fadeInOut}
-      className={`flex w-full backdrop-blur-md bg-[rgba(255,255,255,0.4)] items-center justify-center gap-4 py-1   px-4 rounded-md ${
+      className={`flex w-full backdrop-blur-md bg-[rgba(255,255,255,0.4)] items-center justify-center gap-4 py-1  px-4 rounded-md ${
         isFocus ? 'shadow-md shadow-red-400' : 'shadow-none'
       }`}
     >

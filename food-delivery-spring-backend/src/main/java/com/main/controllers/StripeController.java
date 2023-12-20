@@ -5,13 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -38,27 +36,18 @@ import com.stripe.param.checkout.SessionCreateParams;
 
 
 @RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/stripe")
 public class StripeController {
 	
     @Value("${stripe.apiKey}")
     private String stripeApiKey;
     
     @Value("${webSocket.secret")
-    private String webhookSecret;
-    
-    private UserService userService;
-    private OrderRepository orderRepo;
-    private ProductService productService;
-
-	
-    
-
-
-	public StripeController(UserService userService, OrderRepository orderRepo, ProductService productService) {
-		this.userService = userService;
-		this.orderRepo = orderRepo;
-		this.productService = productService;
-	}
+    private  String webhookSecret;
+    private final UserService userService;
+    private final OrderRepository orderRepo;
+    private final ProductService productService;
 
 
 	@PostMapping("/create-checkout-session")
@@ -154,7 +143,7 @@ public class StripeController {
 				SessionCreateParams params = paramsBuilder.addAllLineItem(lineItems).build();
 				Session session = Session.create(params);
 				
-        return ResponseEntity.status(HttpStatus.OK).body(session.getUrl());
+        return ResponseEntity.ok(session.getUrl());
     }
  
 
@@ -181,7 +170,7 @@ public class StripeController {
 	             ObjectMapper objectMapper = new ObjectMapper();
 	             StripePaymentRequest request = objectMapper.readValue(metadata.get("cart"), StripePaymentRequest.class);
 	             
-				             Order order = new Order();
+				 Order order = new Order();
 	             
 	             
 	             List<OrderItem> orderItems = new ArrayList<>();
@@ -203,16 +192,13 @@ public class StripeController {
 	             			 order.setCreated(LocalDateTime.now());
 	             			 order.setUser(userService.findByEmail(metadata.get("userEmail"))); 
 	             			 order.setPaid(true);
-				             order.setTotalPrice(orderItems.stream().mapToInt(OrderItem::getTotalPrice).sum());
+				             order.setTotalPrice(orderItems.stream().mapToDouble(OrderItem::getTotalPrice).sum());
 				             order.setTotalQuantity(orderItems.stream().mapToInt(OrderItem::getQuantity).sum());
 				             order.setOrderStatus("ACCEPTED");
 				             order.setEstimatedDeliveryTime(LocalDateTime.now().plusHours(1));
 				             order.setDeliveryAdress(paymentIntent.getShipping().getAddress().getLine1() + " , " + paymentIntent.getShipping().getAddress().getCity() + " , " + paymentIntent.getShipping().getAddress().getCountry() + " , " + paymentIntent.getShipping().getAddress().getPostalCode());
-				             order = orderRepo.save(order);
-		             
-						             if(order == null)
-						            	 throw new OrderException("Fail to create order");   
-			             
+							 orderRepo.save(order);
+
 		            }
 	            }
 	          

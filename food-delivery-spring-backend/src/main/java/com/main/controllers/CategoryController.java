@@ -2,15 +2,13 @@ package com.main.controllers;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import com.main.entity.Category;
 import com.main.exceptions.CategoryException;
@@ -19,38 +17,31 @@ import com.main.service.CategoryService;
 
 @RestController
 @RequestMapping("/api/categories")
+@RequiredArgsConstructor
+@Validated
 public class CategoryController {
 
-	
-	private CategoryService categoryService;
+	private final CategoryService categoryService;
 
-	public CategoryController(CategoryService categoryService) {
-		this.categoryService = categoryService;
-	}
-	
 	@GetMapping
 	public ResponseEntity<List<Category>> findAllCategoriesHandler(){
-		
-		return ResponseEntity.status(HttpStatus.OK).body(categoryService.findAll());
+		return ResponseEntity.ok(categoryService.findAll());
 	}
 	
-	@GetMapping("/{categoryId}")
-	public ResponseEntity<Category> findCategoryByIdHandler(@PathVariable int categoryId) throws CategoryException{
-		
-		
-		return ResponseEntity.status(HttpStatus.OK).body(categoryService.findById(categoryId));
+	@GetMapping("/products")
+	public ResponseEntity<Category> findCategoryByIdHandler(@Positive(message = "Cateogory Id Must be positive!")@RequestParam int categoryId) throws CategoryException{
+		return ResponseEntity.ok(categoryService.findById(categoryId));
 	}
 	
 	@PostMapping
-	public ResponseEntity<Category> addCategoryOrUpdateHandler(@RequestBody CategoryRequest req) throws CategoryException{
-		
-		return ResponseEntity.status(HttpStatus.OK).body(categoryService.addCategory(req));
+	public ResponseEntity<Category> addCategoryOrUpdateHandler(@Valid @RequestBody CategoryRequest req) throws CategoryException{
+		return ResponseEntity.ok(categoryService.addCategory(req));
 	}
 	
-	@DeleteMapping("/{categoryId}")
-	public ResponseEntity<Boolean> deleteCategoryHandler(@PathVariable int categoryId) throws CategoryException{
-		
-		return ResponseEntity.status(HttpStatus.OK).body(categoryService.deleteCategory(categoryId));
+	@DeleteMapping()
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteCategoryHandler(@Positive(message = "Category id must be positive!") @RequestParam int categoryId) throws CategoryException{
+		categoryService.deleteCategory(categoryId);
 	}
 	
 }

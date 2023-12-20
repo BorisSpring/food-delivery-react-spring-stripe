@@ -8,11 +8,11 @@ import com.main.requests.CategoryRequest;
 
 public interface CategoryService {
 
-	public Category addCategory(CategoryRequest req) throws CategoryException;
+	 Category addCategory(CategoryRequest req) throws CategoryException;
 	
-	public boolean deleteCategory(int categoryId)throws CategoryException;
+	 void deleteCategory(int categoryId)throws CategoryException;
 	
-	public Category findById(int categoryId)throws CategoryException;
+	 Category findById(int categoryId)throws CategoryException;
 	
-	public List<Category> findAll();
+	 List<Category> findAll();
 }

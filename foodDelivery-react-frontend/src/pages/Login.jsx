@@ -1,23 +1,34 @@
-import React, { useState } from 'react';
-import { LoginBg, Logo } from '../assets';
+import React, { useState, useEffect } from 'react';
 import { LoginInput } from '../components';
-import { FaEnvelope, FaLock, FcGoogle } from '../assets/icons/index';
 import { motion } from 'framer-motion';
 import { buttonClick, fadeInOut } from '../animations/variants';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, registerUser } from '../redux/authReducer';
-import { Navigate } from 'react-router-dom';
-import { danger, success, warning } from '../redux/alertReducer';
+import { loginUser, registerUser, resetAuthError } from '../redux/authReducer';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { getUser } from '../redux/userReducer';
+import { FaEnvelope, FaLock } from 'react-icons/fa';
+import { FcGoogle } from 'react-icons/fc';
+import GoogleSocialLogin from '../components/GoogleSocialLogin';
+import { gapi } from 'gapi-script';
+
+const initialState = {
+  email: '',
+  isSignUp: false,
+  password: '',
+  firstName: '',
+  lastName: '',
+  repeatedPassword: '',
+};
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [password, setPassword] = useState('');
-  const [repeatedPassword, setRepeatedPassword] = useState('');
+  const [formState, setFormState] = useState(initialState);
   const dispatch = useDispatch();
-  const isLoading = useSelector((store) => store.auth.loading);
+  const { isLoading, error, errors } = useSelector((store) => store.auth);
   const user = useSelector((store) => store.user.user);
+  const navigate = useNavigate();
+  const handleInputChange = (fieldName, value) => {
+    setFormState((prev) => ({ ...prev, [fieldName]: value }));
+  };
 
   if (user) return <Navigate to='/' replace={true} />;
 
@@ -33,15 +44,19 @@ const Login = () => {
       )}
       {/* background image */}
       <img
-        src={LoginBg}
-        alt='Background '
+        src='public\assets\img\login.jpg'
+        alt='Background'
         className='w-full h-full object-cover object-center absolute top-0 left-0 '
       />
       {/* content box */}
       <div className='flex flex-col items-center bg-light w-[80%] md:w-[500px] z-10 bg-[rgba(255,255,255,0.4)] backdrop-blur-[6px] px-4 py-12  gap-6'>
         {/* Top logo section */}
         <div className='flex items-center justify-start gap-4 w-full'>
-          <img src={Logo} alt='Compnay Logo' className='w-5 md:w-10' />
+          <img
+            src='\assets\img\logo.png'
+            alt='Compnay Logo'
+            className='w-5 md:w-10'
+          />
           <p className='text-headingColor font-semibold text-base md:text-xl'>
             City
           </p>
@@ -51,43 +66,77 @@ const Login = () => {
           Welcome Back
         </p>
         <p className='text-xl  text-gray-800 -mt-6'>
-          {!isSignUp ? 'Sign in' : 'Sign up'} with following
+          {!formState.isSignUp ? 'Sign in' : 'Sign up'} with following
         </p>
-
         {/* login section */}
-        <div className='w-full flex flex-col items-center justify-center gap-6 px-3 md:px-12 py-2'>
+        <div className='w-full flex flex-col items-center justify-center gap-4 px-3 md:px-12 py-2'>
+          <p className='text-lg  font-[500] text-black'>
+            {error || errors?.email}
+          </p>
           <LoginInput
             placeholder={'Email Here'}
-            icon={<FaEnvelope className='text-2xl text-textColor' />}
-            inputState={email}
-            inputStatefunc={setEmail}
+            icon={<FaEnvelope className='text-lg  text-textColor' />}
+            inputState={formState.email}
+            inputStatefunc={(value) => handleInputChange('email', value)}
             type='email'
-            isSignUp={isSignUp}
           />
+          <p className='text-lg  font-[500] text-black'>{errors?.password}</p>
           <LoginInput
             placeholder={'Password Here'}
             icon={<FaLock className='text-xl text-textColor' />}
-            inputState={password}
-            inputStatefunc={setPassword}
+            inputState={formState.password}
+            inputStatefunc={(value) => handleInputChange('password', value)}
             type='password'
-            isSignUp={isSignUp}
           />
-          {isSignUp && (
-            <LoginInput
-              placeholder={'Confirm password '}
-              icon={<FaLock className='text-xl text-textColor' />}
-              inputState={repeatedPassword}
-              inputStatefunc={setRepeatedPassword}
-              type='password'
-              isSignUp={isSignUp}
-            />
+          {formState.isSignUp && (
+            <>
+              <p className='text-lg  font-[500] text-black'>
+                {errors?.repeatedPassword}
+              </p>
+              <LoginInput
+                placeholder={'Confirm password '}
+                icon={<FaLock className='text-xl text-textColor' />}
+                inputState={formState.repeatedPassword}
+                inputStatefunc={(value) =>
+                  handleInputChange('repeatedPassword', value)
+                }
+                type='password'
+              />
+              <p className='text-lg  font-[500] text-black'>
+                {errors?.firstName}
+              </p>
+              <LoginInput
+                placeholder={'First Name'}
+                icon={<FaLock className='text-xl text-textColor' />}
+                inputState={formState.firstName}
+                inputStatefunc={(value) =>
+                  handleInputChange('firstName', value)
+                }
+                type='text'
+              />
+              <p className='text-lg  font-[500] text-black'>
+                {errors?.lastName}
+              </p>
+              <LoginInput
+                placeholder={'Last Name'}
+                icon={<FaLock className='text-xl text-textColor' />}
+                inputState={formState.lastName}
+                inputStatefunc={(value) => handleInputChange('lastName', value)}
+                type='text'
+              />
+            </>
           )}
-          {!isSignUp ? (
+          {!formState.isSignUp ? (
             <p className='text-headingColor font-semibold'>
               Doesnt't have an account?{' '}
               <motion.button
-                onClick={() => setIsSignUp((prev) => !prev)}
-                className='text-red-400 underline cursor-pointer bg-transparent'
+                onClick={() =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    isSignUp: !formState.isSignUp,
+                  }))
+                }
+                className='text-black underline cursor-pointer bg-transparent'
                 {...buttonClick}
               >
                 Create One
@@ -97,7 +146,12 @@ const Login = () => {
             <p className='text-headingColor font-semibold'>
               Alerdy have an account?{' '}
               <motion.button
-                onClick={() => setIsSignUp((prev) => !prev)}
+                onClick={() =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    isSignUp: !formState.isSignUp,
+                  }))
+                }
                 className='text-red-400 underline cursor-pointer bg-transparent'
                 {...buttonClick}
               >
@@ -108,38 +162,42 @@ const Login = () => {
 
           <motion.button
             onClick={async () => {
-              if (password?.trim().length < 1 && email.trim().length < 1) {
-                dispatch(warning('Required fields arent present'));
-              }
-              if (isSignUp && repeatedPassword.trim() !== password) {
-                dispatch(danger('Passwords must match'));
-              }
-              const { payload } = await dispatch(
-                !isSignUp
+              const { email, password, repeatedPassword, lastName, firstName } =
+                formState;
+              await dispatch(
+                !formState.isSignUp
                   ? loginUser({ email, password })
-                  : registerUser({ email, password, repeatedPassword })
+                  : registerUser({
+                      email,
+                      password,
+                      repeatedPassword,
+                      lastName,
+                      firstName,
+                    })
               );
-              if (payload.auth) {
+
+              if (localStorage.getItem('jwt')) {
                 dispatch(getUser());
-                dispatch(success('U have been suscesfully logged in'));
+                navigate('/');
               } else {
-                dispatch(danger('Invalid credentials'));
+                setTimeout(() => {
+                  dispatch(resetAuthError());
+                }, 10000);
               }
             }}
             {...buttonClick}
             className='w-full px-4 py-2 rounded-md bg-red-400 cursor-pointer text-white text-xl capitalize hover:bg-red-500 transition-all duration-150'
           >
-            Sing {isSignUp ? ' up' : ' in'}
+            Sing {formState.isSignUp ? ' up' : ' in'}
           </motion.button>
         </div>
-
         <div className='flex items-center justify-between gap-16 '>
           <div className='w-24 h-[1px] rounded-md bg-white' />
           <p className='text-white'>or</p>
           <div className='w-24 h-[1px] rounded-md bg-white' />
         </div>
-
-        <motion.div
+        <GoogleSocialLogin />
+        {/* <motion.div
           {...buttonClick}
           className='flex items-center justify-center px-20 py-2 gap-5 bg-cardOverlay backdrop-blur-md cursor-pointer rounded-3xl'
         >
@@ -147,7 +205,7 @@ const Login = () => {
           <p className='capitalize text-base text-textColor'>
             Sign in with Google
           </p>
-        </motion.div>
+        </motion.div> */}
       </div>
     </div>
   );

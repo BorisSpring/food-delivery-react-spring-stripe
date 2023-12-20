@@ -4,16 +4,16 @@ import { loginUserApi, registerUserApi } from '../api/actions';
 const initialState = {
   loading: false,
   error: '',
+  errors: {},
 };
 
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (registerRequest, { rejectWithValue }) => {
     try {
-      const res = await registerUserApi(registerRequest);
-      return res;
+      return await registerUserApi(registerRequest);
     } catch (error) {
-      return rejectWithValue(error.response.data.msg);
+      return rejectWithValue(error.response.data);
     }
   }
 );
@@ -22,10 +22,9 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (loginRequest, { rejectWithValue }) => {
     try {
-      const res = await loginUserApi(loginRequest);
-      return res;
+      return await loginUserApi(loginRequest);
     } catch (error) {
-      return rejectWithValue(error.response.data.msg);
+      return rejectWithValue(error.response.data?.msg);
     }
   }
 );
@@ -33,6 +32,12 @@ export const loginUser = createAsyncThunk(
 const authSlice = createSlice({
   name: 'auth',
   initialState,
+  reducers: {
+    resetAuthError: (state) => {
+      state.loading = false;
+      state.error = '';
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(loginUser.pending, (state) => {
@@ -59,10 +64,12 @@ const authSlice = createSlice({
         state.loading = false;
       })
       .addCase(registerUser.rejected, (state, action) => {
-        state.error = action.payload;
+        state.errors = action?.payload;
+        state.error = action?.payload?.msg;
         state.loading = false;
       });
   },
 });
 
+export const { resetAuthError } = authSlice.actions;
 export default authSlice.reducer;

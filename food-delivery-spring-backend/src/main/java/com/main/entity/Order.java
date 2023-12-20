@@ -6,29 +6,47 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name="orders")
-public class Order {
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Order extends  BaseEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private int id;
-	private LocalDateTime created;
+	@Builder
+	public Order(Integer id, LocalDateTime created, LocalDateTime lastModified, LocalDateTime deliveredTime, String orderStatus, LocalDateTime estimatedDeliveryTime, String deliveryAdress, String phoneNumber, boolean isPaid, User user, List<OrderItem> orderItems, int totalQuantity, int totalPrice) {
+		super(id, created, lastModified);
+		this.deliveredTime = deliveredTime;
+		this.orderStatus = orderStatus;
+		this.estimatedDeliveryTime = estimatedDeliveryTime;
+		this.deliveryAdress = deliveryAdress;
+		this.phoneNumber = phoneNumber;
+		this.isPaid = isPaid;
+		this.user = user;
+		this.orderItems = orderItems;
+		this.totalQuantity = totalQuantity;
+		this.totalPrice = totalPrice;
+	}
+
 	private LocalDateTime deliveredTime;
+
+	@Column(nullable = false)
 	private String orderStatus;
+
+	@Column(nullable = false)
 	private LocalDateTime estimatedDeliveryTime;
+
+	@Column(nullable = false)
 	private String deliveryAdress;
+
+	@Column(nullable = false)
 	private String phoneNumber;
+
+	@Column(nullable = false)
 	private boolean isPaid;
 	
 	@JsonIgnore
@@ -38,115 +56,11 @@ public class Order {
 	
 	@OneToMany(mappedBy="order", cascade = CascadeType.ALL)
 	private List<OrderItem> orderItems = new ArrayList<>();
-	
+
+	@Column(nullable = false)
 	private int totalQuantity;
-	private int totalPrice;
-	
-	
-	
-	public Order() {
 
-	}
-	
-	public String getDeliveryAdress() {
-		return deliveryAdress;
-	}
+	@Column(nullable = false)
+	private double totalPrice;
 
-	public void setDeliveryAdress(String deliveryAdress) {
-		this.deliveryAdress = deliveryAdress;
-	}
-
-	public boolean isPaid() {
-		return isPaid;
-	}
-
-	public void setPaid(boolean isPaid) {
-		this.isPaid = isPaid;
-	}
-
-
-
-	public LocalDateTime getEstimatedDeliveryTime() {
-		return estimatedDeliveryTime;
-	}
-
-
-
-	public void setEstimatedDeliveryTime(LocalDateTime estimatedDeliveryTime) {
-		this.estimatedDeliveryTime = estimatedDeliveryTime;
-	}
-
-
-
-	public int getTotalQuantity() {
-		return totalQuantity;
-	}
-
-	public void setTotalQuantity(int totalQuantity) {
-		this.totalQuantity = totalQuantity;
-	}
-
-	public int getTotalPrice() {
-		return totalPrice;
-	}
-
-	public void setTotalPrice(int totalPrice) {
-		this.totalPrice = totalPrice;
-	}
-
-	public String getOrderStatus() {
-		return orderStatus;
-	}
-
-	public void setOrderStatus(String orderStatus) {
-		this.orderStatus = orderStatus;
-	}
-
-	public List<OrderItem> getOrderItems() {
-		return orderItems;
-	}
-
-	public void setOrderItems(List<OrderItem> orderItems) {
-		this.orderItems = orderItems;
-	}
-
-	public int getId() {
-		return id;
-	}
-
-	public void setId(int id) {
-		this.id = id;
-	}
-
-	public LocalDateTime getDeliveredTime() {
-		return deliveredTime;
-	}
-
-	public void setDeliveredTime(LocalDateTime deliveredTime) {
-		this.deliveredTime = deliveredTime;
-	}
-
-	public LocalDateTime getCreated() {
-		return created;
-	}
-	public void setCreated(LocalDateTime created) {
-		this.created = created;
-	}
-	
-	public User getUser() {
-		return user;
-	}
-	public void setUser(User user) {
-		this.user = user;
-	}
-
-	public String getPhoneNumber() {
-		return phoneNumber;
-	}
-
-	public void setPhoneNumber(String phoneNumber) {
-		this.phoneNumber = phoneNumber;
-	}
-	
-	
 }

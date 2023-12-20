@@ -8,9 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @ControllerAdvice
 public class CsrfTokenAdvice {
-	
-	@ModelAttribute
-	public void getCsrfToken(HttpServletResponse response, CsrfToken csrfToken) {
-		response.setHeader(csrfToken.getHeaderName(), csrfToken.getToken());
-	}
+//	@ModelAttribute
+//	public void getCsrfToken(HttpServletResponse response, CsrfToken csrfToken) {
+//		response.setHeader(csrfToken.getHeaderName(), csrfToken.getToken());
+//	}
 }

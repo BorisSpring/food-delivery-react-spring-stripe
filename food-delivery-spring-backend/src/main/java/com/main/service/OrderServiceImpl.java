@@ -3,11 +3,19 @@ package com.main.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
+import com.main.dto.OrderDto;
+import com.main.entity.User;
+import com.main.exceptions.ResourceNotFoundException;
+import com.main.mappers.OrderMapper;
+import com.main.requests.CreateOrderRequest;
+import com.main.requests.UpdateOrderRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import com.main.dto.UserDTO;
+import com.main.dto.UserDto;
 import com.main.entity.Order;
 import com.main.entity.OrderItem;
 import com.main.entity.Product;
@@ -19,27 +27,23 @@ import com.main.requests.OrderItemRequest;
 import jakarta.transaction.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 	
-	private OrderRepository orderRepo;
-	private UserService userService;
-	private ProductService productService;
-	
-	
-	public OrderServiceImpl(OrderRepository orderRepo, UserService userService, ProductService productService) {
-		this.orderRepo = orderRepo;
-		this.userService = userService;
-		this.productService = productService;
-	}
+	private final OrderRepository orderRepo;
+	private final UserService userService;
+	private final ProductService productService;
+	private final OrderMapper orderMapper;
+
 
 	@Override
-	public List<Order> findAllOrders() {
-		return orderRepo.findAll();
+	public Page<OrderDto> findAllOrders(Integer pageNumber, Integer pageSize) {
+		return orderRepo.findAll(PageRequest.of((pageNumber - 1), pageSize)).map(orderMapper::orderToOrderDto);
 	}
 
 	@Transactional
 	@Override
-	public boolean setOrderStatus(String status, int orderId) throws OrderException {
+	public void setOrderStatus(String status, int orderId) throws OrderException {
 		
 		Order order = findById(orderId);
 		if(status.equals("DELIVERED")) {
@@ -47,103 +51,75 @@ public class OrderServiceImpl implements OrderService {
 			order.setPaid(true);
 		}
 		order.setOrderStatus(status);
-		order = orderRepo.save(order);
-		
-		if(order == null)
-			throw new OrderException("Fail to update order status");
-		
-		return true;
-		
+		orderRepo.save(order);
 	}
 
 	@Transactional
 	@Override
-	public boolean deleteOrder(int orderId) throws OrderException {
-			
+	public void deleteOrder(int orderId) throws OrderException {
 		if(!orderRepo.existsById(orderId))
 			throw new OrderException("Order with id " + orderId + "doesnt exists");
 
 		orderRepo.deleteById(orderId);
-		
-		return true;
 	}
 
 	@Override
 	public Order findById(int orderId) throws OrderException {
-		
-		Optional<Order> opt = orderRepo.findById(orderId);
-		
-		if(!opt.isPresent())
-			throw new OrderException("Order with id " + orderId + "doesnt exists");
-		
-		return opt.get();
+		return orderRepo.findById(orderId)
+					.orElseThrow(() -> new ResourceNotFoundException("Order with id " + orderId + " not found!"));
 	}
 
 	@Transactional
 	@Override
-	public Order createOrder(List<OrderItemRequest> orderItems, int userId, String jwt, String deliveryAdress) throws OrderException, ProductException {
-		
-			UserDTO user = userService.getUserFromToken(jwt);
+	public Order createOrder(String jwt, CreateOrderRequest createOrderRequest) throws  ProductException {
+
+		User user = userService.findById(userService.getUserIdFromToken(jwt));
+		Order order = new Order();
 			
-			Order order = new Order();
+			List<OrderItem> orderItems = new ArrayList<>();
 			
-			List<OrderItem> items = new ArrayList<>();
-			
-			for(OrderItemRequest item : orderItems) {
-				OrderItem i = new OrderItem();
-				Product product = null;
-				product = productService.findById(item.getProductId());
-				
-				i.setProduct(product);
-				i.setQuantity(item.getTotalQuantity());
-				i.setTotalPrice((item.getTotalQuantity() * product.getPrice()) + 2);
-				i.setOrder(order);
-				items.add(i);
+			for(OrderItemRequest item : createOrderRequest.getOrderItems()) {
+				Product product = productService.findById(item.getProductId());
+				orderItems.add(OrderItem.builder()
+							.product(product)
+							.quantity(item.getTotalQuantity())
+							.totalPrice((item.getTotalQuantity() * product.getPrice()) + 2)
+							.order(order)
+							.build());
 			}
-					
-			
-			
-			var totalQuantity  = items.stream().mapToInt(OrderItem::getQuantity).sum();
-			var totalPrice = items.stream().mapToInt(OrderItem::getTotalPrice).sum();
-			
-			order.setDeliveryAdress(deliveryAdress);
-			order.setPaid(false);
+
+			order.setDeliveryAdress(createOrderRequest.getDeliveryAdress());
+			order.setPaid(createOrderRequest.isPaid);
 			order.setEstimatedDeliveryTime(LocalDateTime.now().plusHours(1));
-			order.setUser(userService.findById(user.getId()));
-			order.setOrderItems(items);
-			order.setTotalQuantity(totalQuantity);
-			order.setTotalPrice(totalPrice);
+			order.setUser(user);
+			order.setOrderItems(orderItems);
+			order.setTotalQuantity( orderItems.stream().mapToInt(OrderItem::getQuantity).sum());
+			order.setTotalPrice( orderItems.stream().mapToDouble(OrderItem::getTotalPrice).sum());
 			order.setOrderStatus("ACCEPTED");
 			order.setCreated(LocalDateTime.now());
 			
-			order = orderRepo.save(order);
-			
-			if(order == null)
-				throw new OrderException("Fail to place order. Try Again");
-			
-			return order;
+			return orderRepo.save(order);
 	}
 
 	@Transactional
 	@Override
-	public boolean cancelOrder(String jwt, int orderId) throws OrderException {
-		
-		UserDTO user = userService.getUserFromToken(jwt);
-		
+	public void cancelOrder(String jwt, int orderId) throws OrderException {
+		UserDto user = userService.getUserFromToken(jwt);
+
 		Order order = findById(orderId);
-		
-		if(order.getUser().getId() != user.getId())
+		if(order.getUser().getId().equals(user.getId()))
 			throw new OrderException("User not related to this order");
-		
+
 		order.setOrderStatus("CANCELED");
-		order =orderRepo.save(order);
-		
-		if(order == null)
-			throw new OrderException("Fail to cancel order");
-		
-		
-		return true;
+		orderRepo.save(order);
 	}
 
-	
+	@Override
+	public OrderDto updateOrder(UpdateOrderRequest updateOrderRequest) throws OrderException {
+		Order order = findById(updateOrderRequest.getId());
+		order.setDeliveryAdress(updateOrderRequest.getDeliveryAdress());
+		order.setPhoneNumber(updateOrderRequest.getPhoneNumber());
+		return  orderMapper.orderToOrderDto(orderRepo.save(order));
+	}
+
 }

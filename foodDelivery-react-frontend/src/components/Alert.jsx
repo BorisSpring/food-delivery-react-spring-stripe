@@ -1,12 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { fadeInOut } from '../animations/variants';
-import { FaCheck } from '../assets/icons';
 import {
-  BsExclamation,
   BsExclamationTriangle,
   BsExclamationTriangleFill,
 } from 'react-icons/bs';
+import { Check } from '@mui/icons-material';
 
 const Alert = ({ type, message }) => {
   if (type === 'success')
@@ -15,7 +14,7 @@ const Alert = ({ type, message }) => {
         {...fadeInOut}
         className='fixed z-50 backdrop-blur-sm top-32 left-16 rounded-md px-8 py-2 bg-emerald-200 flex items-center gap-4'
       >
-        <FaCheck className='text-xl text-emerald-700' />
+        <Check className='text-xl text-emerald-700' />
         <p className='text-xl text-emerald-700'>{message}</p>
       </motion.div>
     );

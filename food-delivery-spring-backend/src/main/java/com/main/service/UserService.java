@@ -2,30 +2,31 @@ package com.main.service;
 
 import java.util.List;
 
-import com.main.dto.UserDTO;
+import com.main.dto.UserDto;
 import com.main.entity.User;
 import com.main.exceptions.UserException;
-import com.main.requests.CreateAccountRequest;
 import com.main.requests.LoginRequest;
+import com.main.requests.UserRegistrationRequest;
 import com.main.responses.AuthResponse;
+import org.springframework.data.domain.Page;
 
 public interface UserService {
 
-	public List<User> findAllUsers();
+	 Page<UserDto> findAllUsers(Integer pageNumber, Integer pageSize);
 	
-	public AuthResponse loginUser(LoginRequest req);
+	 AuthResponse loginUser(LoginRequest req);
 	
-	public AuthResponse registerUser(CreateAccountRequest req);
+	 AuthResponse registerUser(UserRegistrationRequest req);
 	
-	public UserDTO getUserFromToken(String jwt);
+	 UserDto getUserFromToken(String jwt);
 	
-	public boolean enableDisableUser(int userId) throws UserException;
+	 void enableDisableUser(int userId) throws UserException;
 	
-	public boolean deleteUser(int userId) throws UserException;
+	 void deleteUser(int userId) throws UserException;
 	
-	public User findById(int userId) throws UserException;
+	 User findById(int userId) throws UserException;
 
 	String getEmailFromToken(String jwt);
-	
-	public User findByEmail(String email) throws UserException;
+	Integer getUserIdFromToken(String jwt);
+  	User findByEmail(String email) throws UserException;
 }
